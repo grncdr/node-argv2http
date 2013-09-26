@@ -1,0 +1,15 @@
+{
+  "name": "cli2http",
+  "version": "0.0.0",
+  "description": "Create declarative CLI wrappers for HTTP API's",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": "",
+  "author": "Stephen Sugden <me@stephensugden.com>",
+  "license": "BSD",
+  "devDependencies": {
+    "tap": "~0.4.4"
+  }
+}
