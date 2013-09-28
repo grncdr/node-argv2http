@@ -6,7 +6,11 @@ module.exports = exports = {
 
   required: required,
   optional: optional,
+  named:    named,
+  flag:     flag,
   rest:     rest,
+  unparsed: unparsed,
+
   http:     require('http')
 }
 
@@ -40,7 +44,8 @@ function request(commands, args, callback) {
 
   req = exports.http.request(parsed.request);
   if (parsed.serializer && Object.keys(parsed.body).length) {
-    req.write(parsed.serializer.call(null, parsed.body));
+    var body = parsed.serializer.call(null, parsed.body);
+    req.write(body);
   }
   if (typeof callback == 'function') {
     req.on('error', callback);
@@ -57,12 +62,13 @@ function parse (commands, args) {
   }
   args = args.slice();
 
-  var requestParams = {method: 'GET'}
+  var current        = commands
     , subCommands    = []
     , pathComponents = []
     , bodyParams     = {}
     , serializer     = JSON.stringify
-    , current        = commands;
+    , requestParams  = { method: 'GET',
+                         headers: {'Content-Type': 'application/json'} }
 
   while (true) {
     if (Object.hasOwnProperty(current, '_serializer')) {
@@ -113,8 +119,20 @@ function parse (commands, args) {
   function updateBody(params) {
     Object.keys(params).forEach(function (name) {
       var v = params[name];
-      v = typeof v == 'function' ? v.call(null, args) : v.toString();
-      bodyParams[name] = v;
+      if (typeof v == 'function') {
+        bodyParams[name] = v.call(null, args);
+      }
+      else if (typeof v == 'object') {
+        // Nested object
+        var tmp = bodyParams;
+        bodyParams = {};
+        updateBody(v);
+        tmp[name] = bodyParams;
+        bodyParams = tmp;
+      }
+      else {
+        bodyParams[name] = String(v);
+      }
     })
   }
 
@@ -150,5 +168,55 @@ function optional (fallback) {
 function rest () {
   return function (args) {
     return args.splice(0, args.length);
+  }
+}
+
+function flag (name, shortName) {
+  var exp = '^--' + name + '$';
+  if (shortName) exp += '|^-' + shortName + '$';
+  exp = new RegExp(exp);
+  var count = 0;
+  return function flag (args) {
+    for (var i = 0; i < args.length; i++) {
+      if (exp.test(args[i])) {
+        args.splice(i, 1);
+        count++;
+      }
+    }
+    return count;
+  }
+}
+
+function named (name, shortName) {
+  var exp = '^--' + name + '$';
+  if (shortName) exp += '|^-' + shortName + '$';
+  exp = new RegExp(exp);
+  return function (args) {
+    var value;
+    for (var i = 0; i < args.length; i++) {
+      if (exp.test(args[i])) {
+        var x = args.splice(i, 2);
+        if (value) {
+          if (!Array.isArray(value)) {
+            value = [value];
+          }
+          value.push(x[1]);
+        } else {
+          value = x[1];
+        }
+      }
+    }
+    return value;
+  }
+}
+
+/** Return all arguments following a literal '--' */
+function unparsed () {
+  return function (args) {
+    var i = args.indexOf('--');
+    if (i > -1) {
+      args.splice(i, 1);
+      return args.splice(i, args.length - i);
+    }
   }
 }
