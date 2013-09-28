@@ -27,7 +27,7 @@ var router = cli.router({
   }
 })
 
-test("cli2http", {timeout: 4000}, function (t) {
+test("argv2http", {timeout: 4000}, function (t) {
 
   t.test(".parse",function (t) {
     t.deepEqual(

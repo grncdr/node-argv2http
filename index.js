@@ -20,7 +20,7 @@ function Router(commands) {
 function request(commands, args, callback) {
   if (!Array.isArray(args)) {
     callback = args;
-    args     = process.argv;
+    args     = process.argv.slice(2);
   }
 
   var parsed, req;
@@ -64,7 +64,7 @@ function parse (commands, args) {
     , serializer     = JSON.stringify
     , current        = commands;
 
-  while (args.length) {
+  while (true) {
     if (Object.hasOwnProperty(current, '_serializer')) {
       serializer = current._serializer;
     }
