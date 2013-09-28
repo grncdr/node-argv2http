@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test.js"
   },
-  "repository": "",
+  "repository": "https://github.com/grncdr/node-argv2http.git",
+  "issues": "https://github.com/grncdr/node-argv2http/issues",
   "author": "Stephen Sugden <me@stephensugden.com>",
   "license": "MIT",
   "devDependencies": {
