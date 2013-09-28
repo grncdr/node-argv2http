@@ -1,7 +1,7 @@
 {
-  "name": "cli2http",
+  "name": "argv2http",
   "version": "0.0.0",
-  "description": "Create declarative CLI wrappers for HTTP API's",
+  "description": "Easily create declarative CLI wrappers for HTTP API's",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
