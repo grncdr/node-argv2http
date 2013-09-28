@@ -1,4 +1,6 @@
 module.exports = exports = {
+  router:   Router,
+  Router:   Router,
   request:  request,
   parse:    parse,
 
@@ -8,14 +10,35 @@ module.exports = exports = {
   http:     require('http')
 }
 
-function request(args, lookup, callback) {
-  if (arguments.length == 2) {
-    callback = lookup;
-    lookup = args;
-    args = process.argv;
+function Router(commands) {
+  if (!(this instanceof Router)) return new Router(commands);
+  this.commands = commands;
+  this.request  = request.bind(null, commands);
+  this.parse    = parse.bind(null, commands);
+}
+
+function request(commands, args, callback) {
+  if (!Array.isArray(args)) {
+    callback = args;
+    args     = process.argv;
   }
-  var parsed = parse(args, lookup);
-  var req = exports.http.request(parsed.request);
+
+  var parsed, req;
+
+  // Catch parse errors
+  try {
+    parsed = parse(commands, args);
+  } catch (err) {
+    req = new exports.http.ClientRequest({})
+    req.end();
+    if (callback) callback(err);
+    else process.nextTick(function () {
+      req.emit('error', err)
+    });
+    return req;
+  }
+
+  req = exports.http.request(parsed.request);
   if (parsed.serializer && Object.keys(parsed.body).length) {
     req.write(parsed.serializer.call(null, parsed.body));
   }
@@ -28,10 +51,9 @@ function request(args, lookup, callback) {
   return req;
 }
 
-function parse (args, commands) {
-  if (arguments.length == 1) {
-    commands = args;
-    args = process.argv
+function parse (commands, args) {
+  if (!Array.isArray(args)) {
+    args = process.argv.slice(2);
   }
   args = args.slice();
 
@@ -58,8 +80,6 @@ function parse (args, commands) {
 
     if (!current[subCommand]) {
       throw new Error("Unknown sub-command: " + subCommand);
-    } else {
-      console.log(subCommand);
     }
 
     subCommands.push(subCommand);
@@ -108,7 +128,6 @@ function parse (args, commands) {
       'auth',
       'agent' ].forEach(function (k) {
         if (obj.hasOwnProperty('_' + k)) {
-          console.log("set " + k + " to " + obj['_' + k]);
           requestParams[k] = obj['_' + k];
         }
       })
