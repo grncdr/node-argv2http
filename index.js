@@ -1,3 +1,4 @@
+var qs = require('querystring');
 module.exports = exports = {
   router:   Router,
   Router:   Router,
@@ -66,6 +67,7 @@ function parse (commands, args) {
     , subCommands    = []
     , pathComponents = []
     , bodyParams     = {}
+    , queryParams    = {}
     , serializer     = JSON.stringify
     , requestParams  = { method: 'GET',
                          headers: {'Content-Type': 'application/json'} }
@@ -76,7 +78,8 @@ function parse (commands, args) {
     }
 
     if (current._path) updatePath(current._path);
-    if (current._body) updateBody(current._body);
+    if (current._body) updateObject(bodyParams, current._body);
+    if (current._query) updateObject(queryParams, current._query);
 
     updateOtherRequestParams(current);
 
@@ -95,6 +98,9 @@ function parse (commands, args) {
   requestParams.path = pathComponents.join('/');
   if (!/^\//.test(requestParams.path)) {
     requestParams.path = '/' + requestParams.path;
+  }
+  if (Object.keys(queryParams).length) {
+    requestParams.path += '?' + qs.encode(queryParams);
   }
 
   return {
@@ -116,22 +122,18 @@ function parse (commands, args) {
     })
   }
 
-  function updateBody(params) {
+  function updateObject(target, params) {
     Object.keys(params).forEach(function (name) {
       var v = params[name];
       if (typeof v == 'function') {
-        bodyParams[name] = v.call(null, args);
+        target[name] = v.call(null, args);
       }
       else if (typeof v == 'object') {
         // Nested object
-        var tmp = bodyParams;
-        bodyParams = {};
-        updateBody(v);
-        tmp[name] = bodyParams;
-        bodyParams = tmp;
+        target[v] = updateObject({}, v);
       }
       else {
-        bodyParams[name] = String(v);
+        target[name] = String(v);
       }
     })
   }
